@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace = "com.example.weixin.Services.DAOService">
+
+    <resultMap id = "ordersResult" type = "com.example.weixin.POJO.Order">
+        <result property = "oId" column = "订单号"/>
+        <result property = "title" column = "订单标题"/>
+        <result property = "oContent" column = "订单内容"/>
+        <result property = "date" column = "下单时间"/>
+        <result property = "price" column = "出价"/>
+        <result property="sOpenid" column="openId"/>
+        <result property="takerNick" column="昵称"/>
+    </resultMap>
+    <select id="getTakeableOrders" resultMap="ordersResult">
+        select 订单号,下单时间,订单标题,订单内容,出价,T.openId as openId,昵称 from
+            (select 订单.订单号 订单号,下单时间,订单标题,订单内容,出价,openId from 订单,下单
+            <where>订单.订单状态=1
+                and
+                订单.订单号=下单.订单号
+            </where>)as T,用户
+
+                <where>
+                    T.openId=用户.openId
+                </where>
+    </select>
+    <select id="flushTakeableOrders" resultMap="ordersResult">
+        select 订单.订单号,订单标题,订单内容,出价,下单时间 from 订单,下单
+        <where>
+            订单状态=1
+            and
+            订单.订单号=下单.订单号
+        </where>
+    </select>
+    <select id="exists" resultType="String">
+       select openId from 用户
+       <where>
+           <if test="openid != null and openid != ''">
+               openId=#{openid}
+           </if>
+       </where>
+    </select>
+    <insert id="signInNew">
+        insert into 用户 (openId) values (#{openid})
+    </insert>
+    <select id="getOrderIDs" resultType="String" >
+        select 订单号 from 订单 where 订单状态 not in (0,3)
+    </select>
+    <insert id="takeOrder">
+        <if test="openId != null and openId != ''">
+            insert into 接单 (openId,订单号,接单时间) values (#{openId},#{oid},#{date})
+        </if>
+    </insert>
+    <select id="getOrderStatus" resultType="int">
+        select 订单状态 from 订单
+        <where>
+            <if test="oid != null and oid != ''">
+                订单号 = #{oid}
+            </if>
+        </where>
+    </select>
+    <update id="updateOrderStatus">
+        <if test="oid != null and oid != ''">
+            update 订单 set 订单状态=#{newStatus}
+                <where>
+                    订单号= #{oid}
+                </where>
+        </if>
+    </update>
+    <select id="getusedIDs" resultType="String">
+        select 订单号 from 订单
+    </select>
+    <insert id="submitOrder">
+        insert into 下单 values(#{openid},#{oid},#{date})
+    </insert>
+    <insert id="createOrder">
+        insert into 订单 values(#{oid},#{title},#{content},1,#{price})
+    </insert>
+    <select id="submittedNumber" resultType="int">
+        select count(*) from 下单 t1 where t1.订单号 in (select 订单号 from 订单 where 订单状态 in (1,2,4)) and openId=#{openid}
+    </select>
+    <resultMap id = "ordersWithStatusResult" type = "com.example.weixin.POJO.Order">
+        <result property = "oId" column = "订单号"/>
+        <result property = "title" column = "订单标题"/>
+        <result property = "oContent" column = "订单内容"/>
+        <result property = "date" column = "下单时间"/>
+        <result property = "price" column = "出价"/>
+        <result property = "status" column = "订单状态"/>
+        <result property = "taker" column = "接单人"/>
+        <result property="tDate" column="接单时间"/>
+        <result property="takerNick" column="昵称"/>
+    </resultMap>
+    <select id="getSubmittedOrders" resultMap="ordersWithStatusResult">
+        select T.openId as 接单人,昵称,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间 from
+                (select openId,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间 from
+                    (select 订单.订单号,订单标题,订单内容,订单状态,出价,下单时间 from 订单,下单 where 下单.订单号=订单.订单号 and 下单.openId=#{openid}) as T,接单 where 接单.订单号=T.订单号) as T,用户 where T.openId=用户.openId
+    </select>
+    <select id="flushSubmittedOrders" resultMap="ordersWithStatusResult">
+        select 订单.订单号,订单内容,订单标题,下单时间,出价,订单状态,接单.openId as 接单人 from (订单 left join 下单 on 下单.订单号=订单.订单号) left join 接单 on 接单.订单号=下单.订单号
+        where  下单.openId=#{openid}
+    </select>
+    <select id="ensureAdmin" resultType="int">
+        select count(*) from 下单 where 订单号=#{oid} and openId=#{openid}
+    </select>
+    <update id="cancleOrder">
+        update 订单 set 订单状态=3 where 订单号=#{oid}
+    </update>
+    <select id="getOrderOwner" resultType="String">
+        select openId from 下单 where 订单号=#{oid}
+    </select>
+    <update id="updateUserInfo">
+        update 用户 set 昵称=#{nickName},省份=#{province},城市=#{city} where openId=#{openid}
+    </update>
+    <select id="getNickName" resultType="String">
+        select 用户名 from 用户 where openId=#{openid}
+    </select>
+    <update id="flushNewMsgStatus">
+        update 消息记录 set 已接收=1 where 接收方=#{openid}
+    </update>
+
+    <resultMap id="chatMsgMap" type="com.example.weixin.POJO.ChatMsg">
+        <result property="from" column="发送方"/>
+        <result property="to" column="接收方"/>
+        <result property="content" column="消息内容"/>
+        <result property="time" column="时间" javaType="java.util.Date"/>
+    </resultMap>
+    <select id="searchNewMsgFromDisk" resultMap="chatMsgMap">
+        select * from 消息记录 where 接收方=#{openid} and 已接收=0
+    </select>
+
+</mapper>

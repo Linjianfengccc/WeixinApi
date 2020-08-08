@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace = "com.example.weixin.Services.UserFunction">
+    <resultMap id="userCustomizedInfo" type="com.example.weixin.POJO.UserCustomizedInfo">
+        <result property="openid" column="openId"></result>
+        <result property="realName" column="真实姓名"></result>
+        <result property="sex" column="性别"></result>
+        <result property="sid" column="学号"></result>
+        <result property="sArea" column="校区"></result>
+        <result property="phone" column="手机"></result>
+        <result property="id" column="身份证号"/>
+        <result property="sign" column="签名"/>
+        <result property="age" column="年龄"/>
+        <result property="nickName" column="昵称"/>
+
+    </resultMap>
+
+    <update id="uptateUserInfo">
+        update 用户 set
+        昵称=if(#{nickName} is null or #{nickName}='' ,昵称,#{nickName}),
+        真实姓名=if(#{name} is null or #{name}='',真实姓名,#{name}),
+        性别=if(#{sex} is null or #{sex}='',性别,#{sex}),
+        学号=if(#{sid} is null or #{sid}='',学号,#{sid}),
+        校区=if(#{sArea} is null or #{sArea}='',校区,#{sArea}),
+        手机=if(#{phone} is null or #{phone}='',手机,#{phone}),
+        身份证号=if(#{id} is null or #{id}='',身份证号,#{id}),
+        签名=if(#{sign} is null or #{sign}='',签名,#{sign}),
+        年龄=if(#{age} is null or #{age}='',年龄,#{age})
+        <where>
+            openId=#{openid}
+        </where>
+    </update>
+
+    <select id="getUserCustomizedInfo" resultMap="userCustomizedInfo">
+        select openId,真实姓名,性别,学号,校区,手机,身份证号,签名,年龄 from 用户
+        <where>
+            openId=#{openid}
+        </where>
+    </select>
+
+    <select id="getNickByOpenid" resultType="string">
+        select 昵称 from 用户 where openId=#{openId}
+    </select>
+    <select id="flushNickByOpenid" resultType="string">
+        select 昵称 from 用户 where openId=#{openId}
+    </select>
+
+
+</mapper>
