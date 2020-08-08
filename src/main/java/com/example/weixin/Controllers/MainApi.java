@@ -305,15 +305,17 @@ public class MainApi {
         File Hicon=null;
         try{
             Hicon=new File(userHiconPath,fileName);
-            multipartFile.transferTo(Hicon);
+            new FileOutputStream(Hicon).write(multipartFile.getBytes());
         }
         catch (IOException e){
+            e.printStackTrace();
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
         }
         try{
             adjustIMGtoPNG(Hicon);
         }catch (IOException e){
+            e.printStackTrace();
             Hicon.delete();
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
@@ -324,8 +326,11 @@ public class MainApi {
         }
         if(img.getName().endsWith(".png")) return;
         BufferedImage bfimg= ImageIO.read(img);
-        String subfix=".png",path=img.getPath(),filename=img.getName();
+        String subfix=".png",path=img.getParent(),filename=img.getName();
         if(filename.indexOf('.')==-1) filename+=subfix;
+        else{
+            filename=filename.substring(0,filename.indexOf("."))+subfix;
+        }
         ImageIO.write(bfimg,"png",new File(path,filename));
         img.delete();
 

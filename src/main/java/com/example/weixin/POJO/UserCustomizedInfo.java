@@ -1,7 +1,7 @@
 package com.example.weixin.POJO;
 
 public class UserCustomizedInfo {
-    String openid,nickName,realName,sex,sid,sArea,phone,id,sign,grade;
+    String openid,nickName,realName,sex,sid,sArea,phone,id,sign,age;
 
     public String getNickName() {
         return nickName;
@@ -75,11 +75,11 @@ public class UserCustomizedInfo {
         this.sign = sign;
     }
 
-    public String getGrade() {
-        return grade;
+    public String getAge() {
+        return age;
     }
 
-    public void setGrade(String grade) {
-        this.grade = grade;
+    public void setAge(String age) {
+        this.age = age;
     }
 }
