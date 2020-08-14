@@ -14,6 +14,7 @@ import javax.annotation.Resource;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
+import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -48,5 +49,6 @@ public class APPContextListener implements ServletContextListener {
         if(!(userHiconPath.exists()&&userHiconPath.isDirectory())){
             userHiconPath.mkdir();
         }
+
     }
 }

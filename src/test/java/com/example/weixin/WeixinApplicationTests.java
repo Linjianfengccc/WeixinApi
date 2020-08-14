@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.example.weixin.Controllers.MainApi;
 
+import com.example.weixin.POJO.Order;
 import com.example.weixin.Services.ChatMsgRepository;
 import com.example.weixin.Services.DAOService;
 
@@ -19,6 +20,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.jms.core.JmsTemplate;
+import java.util.*;
 
 
 import javax.annotation.Resource;
@@ -51,16 +53,13 @@ public class WeixinApplicationTests {
     SimpleDateFormat simpleDateFormat;
     @Test
     void contextLoads() throws InterruptedException, JMSException, IOException {
-        ClassPathResource classPathResource=new ClassPathResource("/UserImgs");
 
-        String path=classPathResource.getURL().getPath();
-        System.out.println(path);
-        File f=new File(path+"/test");
-        if(!f.exists()){
-            new FileOutputStream(f).write("fuck".getBytes());
-        }
-
-
+        List<Order> l = daoService.getTakenOrdersByOpenid("ohHTIszRnH64cf2XVn3fLbpSpqzI");
+        Set<String> fieldNames=new HashSet<>();
+        fieldNames.add("title");
+        fieldNames.add("content");
+        JSONArray res=userInfoUtil.mapOrderFields(l,fieldNames);
+        System.out.println(res.toString());
 
 
 

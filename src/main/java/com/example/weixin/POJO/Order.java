@@ -17,10 +17,28 @@ public class Order {
     private String oId;
     private String oContent;
     private String title;
-    private String taker;
-    private Date tDate;
+    private String taker;//接单用户的openid
+    private Date tDate;//接单时间
     private String takerNick;
     private String sOpenid;//下单用户的openid
+    private String submitterNick;
+    private int status;
+    private Date date;//下单时间
+    private double price;
+
+
+    public String getSubmitterNick() {
+        return submitterNick;
+    }
+
+    public void setSubmitterNick(String submitterNick) {
+        this.submitterNick = submitterNick;
+    }
+
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
 
     public String getsOpenid() {
         return sOpenid;
@@ -46,7 +64,7 @@ public class Order {
         this.tDate = tDate;
     }
 
-    private int status;
+
 
 
     public String getTaker() {
@@ -67,8 +85,6 @@ public class Order {
         this.status = status;
     }
 
-    private double price;
-
     public double getPrice() {
         return price;
     }
@@ -84,8 +100,6 @@ public class Order {
     public void setTitle(String title) {
         this.title = title;
     }
-
-    private Date date;
 
     public String getoId() {
         return oId;

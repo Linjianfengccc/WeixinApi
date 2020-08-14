@@ -1,6 +1,8 @@
 package com.example.weixin.Utils;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.example.weixin.POJO.Order;
 import com.example.weixin.POJO.UserCustomizedInfo;
 import com.example.weixin.Services.DAOService;
 import com.example.weixin.Services.UserFunction;
@@ -11,7 +13,12 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.text.SimpleDateFormat;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.*;
 
 
 @Service
@@ -22,6 +29,8 @@ public class UserInfoUtil {
     DAOService daoService;
     @Autowired
     UserFunction userFunction;
+    @Autowired
+    SimpleDateFormat simpleDateFormat;
 
     /**
      *
@@ -96,7 +105,28 @@ public class UserInfoUtil {
         return userFunction.getUserCustomizedInfo(openid);
     }
 
+    public JSONArray mapOrderFields(List<Order> orderList,Set<String> fieldName){
+        JSONArray res=new JSONArray();
+        for(Order o : orderList){
+            JSONObject oo=new JSONObject();
+            for(Field f:o.getClass().getDeclaredFields()){
+                if (!fieldName.contains(f.getName())|| Modifier.isStatic(f.getModifiers())) continue;
+                if(!f.trySetAccessible()){
+                    f.setAccessible(true);
+                }
+                try{
+                    if(!f.getType().getSimpleName().equals("Date"))oo.put(f.getName(),f.get(o));
+                    else{
+                        oo.put(f.getName(),simpleDateFormat.format((Date)f.get(o)));
+                    }
 
+                }
+                catch (NullPointerException | IllegalAccessException e){}
+            }
+            res.add(oo);
+        }
+        return res;
+    }
 
 
 

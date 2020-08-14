@@ -38,5 +38,6 @@ public interface DAOService {
     String getNickName(String openid);
     void flushNewMsgStatus(String openid);
     List<ChatMsg> searchNewMsgFromDisk(String openid);
+    List<Order> getTakenOrdersByOpenid(String openid);
 
 }

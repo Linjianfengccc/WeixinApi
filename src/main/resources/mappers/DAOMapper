@@ -11,7 +11,7 @@
         <result property = "date" column = "下单时间"/>
         <result property = "price" column = "出价"/>
         <result property="sOpenid" column="openId"/>
-        <result property="takerNick" column="昵称"/>
+        <result property="submitterNick" column="昵称"/>
     </resultMap>
     <select id="getTakeableOrders" resultMap="ordersResult">
         select 订单号,下单时间,订单标题,订单内容,出价,T.openId as openId,昵称 from
@@ -94,7 +94,31 @@
     <select id="getSubmittedOrders" resultMap="ordersWithStatusResult">
         select T.openId as 接单人,昵称,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间 from
                 (select openId,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间 from
-                    (select 订单.订单号,订单标题,订单内容,订单状态,出价,下单时间 from 订单,下单 where 下单.订单号=订单.订单号 and 下单.openId=#{openid}) as T,接单 where 接单.订单号=T.订单号) as T,用户 where T.openId=用户.openId
+                    (select 订单.订单号,订单标题,订单内容,订单状态,出价,下单时间 from 订单,下单 where 下单.订单号=订单.订单号 and 下单.openId=#{openid}) as T left join 接单 on 接单.订单号=T.订单号) as T left join 用户 on T.openId=用户.openId
+    </select>
+    <resultMap id="takenOrdersMap" type="com.example.weixin.POJO.Order">
+        <result property="oId" column="订单号"/>
+        <result property="sOpenid" column="下单用户"/>
+        <result property="submitterNick" column="昵称"/>
+        <result property="price" column="出价"/>
+        <result property="date" column="下单时间"/>
+        <result property="tDate" column="接单时间"/>
+        <result property="title" column="订单标题"/>
+        <result property="oContent" column="订单内容"/>
+        <result property="status" column="订单状态"/>
+    </resultMap>
+    <select id="getTakenOrdersByOpenid" resultMap="takenOrdersMap">
+        select 订单.订单号,下单.openId as 下单用户,昵称,下单时间,接单时间,订单标题,订单内容,出价,订单状态 from
+            订单,下单,接单,用户
+                <where>
+                    订单.订单号=下单.订单号
+                        and
+                    订单.订单号=接单.订单号
+                        and
+                    接单.openId=#{openid}
+                        and
+                    用户.openId=下单.openId
+                </where>
     </select>
     <select id="flushSubmittedOrders" resultMap="ordersWithStatusResult">
         select 订单.订单号,订单内容,订单标题,下单时间,出价,订单状态,接单.openId as 接单人 from (订单 left join 下单 on 下单.订单号=订单.订单号) left join 接单 on 接单.订单号=下单.订单号

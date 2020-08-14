@@ -29,9 +29,11 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.constraints.NotNull;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -93,7 +95,7 @@ public class MainApi {
             jsonObject.put("content",o.getoContent());
             jsonObject.put("price",o.getPrice());
             jsonObject.put("dateTime",simpleDateFormat.format(o.getDate()));
-            jsonObject.put("takerNick",o.getTakerNick());
+            jsonObject.put("submitterNick",o.getSubmitterNick());
             jsonObject.put("sOpenid",o.getsOpenid());
             list.add(jsonObject);
         }
@@ -165,19 +167,23 @@ public class MainApi {
             res.add(JSONObject.parse(new MsgUtil("errMsg","openid ERR").toString()));
             return res;
         }
+
         for(Order o:orders){
             JSONObject oo=new JSONObject();
             for(Field f:o.getClass().getDeclaredFields()){
-                if(f.getType().getSimpleName().equals("int")||f.getName().equals("sOpenid")) continue;
+                if(Modifier.isStatic(f.getModifiers()) ||f.getName().equals("sOpenid")) continue;
                 if(!f.trySetAccessible()){
                     f.setAccessible(true);
                 }
                 try{
+                    System.out.println(f.get(o)==null);
                     if(!f.getType().getSimpleName().equals("Date")){
                         oo.put(f.getName(),f.get(o));
                     }
                     else{
-                        oo.put(f.getName(),simpleDateFormat.format((Date)f.get(o)));
+                        Date d=(Date)f.get(o);
+                            oo.put(f.getName(),d==null?d:simpleDateFormat.format((Date)f.get(o)));
+
                     }
                 }
                 catch (IllegalAccessException e){
@@ -191,8 +197,27 @@ public class MainApi {
         return res;
     }
 
+    @GetMapping("takenOrders")
+    public JSONArray getTakenOrders(@RequestHeader("ge_session")String ge_session){
+        String openid=userInfoUtil.getUserInfo(ge_session, UserInfoUtil.INFO.OPENID);
+        List<Order> orders=daoService.getTakenOrdersByOpenid(openid);
+        Set<String> fieldName=new HashSet<>();
+        fieldName.add("oId");
+        fieldName.add("sOpenid");
+        fieldName.add("submitterNick");
+        fieldName.add("price");
+        fieldName.add("date");
+        fieldName.add("tDate");
+        fieldName.add("title");
+        fieldName.add("oContent");
+        fieldName.add("status");
+
+        return userInfoUtil.mapOrderFields(orders,fieldName);
+
+    }
+
     @GetMapping("/cancle")
-    public String cancle(HttpServletRequest httpServletRequest,@Param("oid") @Nullable String oid){
+    public String cancle(HttpServletRequest httpServletRequest,@Param("oid") @NotNull String oid){
         if(oid==null) return new MsgUtil("errMsg","null Oid!").toString();
         String openid=userInfoUtil.getUserInfo(httpServletRequest.getHeader("ge_session"), UserInfoUtil.INFO.OPENID);
         if(daoService.ensureAdmin(openid,oid)==0){
