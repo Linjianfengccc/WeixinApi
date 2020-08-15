@@ -91,10 +91,7 @@ public class LoginServicesImp implements LoginServices {
         if(sk_Oid.get("errcode")!=null) return sk_Oid.toJSONString();
 
         String session_key= (String) sk_Oid.get("session_key"),openid= (String) sk_Oid.get("openid");
-        if(daoService.exists(openid)==null){
-            daoService.signInNew(openid);
-            locks.put(openid,new Object());
-        }
+
         JSONObject deJson = null;
         if(encryptedData!=null&&iv!=null){
             try {
@@ -109,7 +106,12 @@ public class LoginServicesImp implements LoginServices {
                     String user=deJson.getString("nickName"),
                     province=deJson.getString("province"),
                     city=deJson.getString("city");
-                    userInfoUtil.updateUserInfo(openid,user,province,city);
+                    if(daoService.exists(openid)==null){
+                        daoService.signInNew(openid);
+                        locks.put(openid,new Object());
+                        userInfoUtil.updateUserInfo(openid,user,province,city);
+                    }
+
                     sb.append(user).append(" from ").append(city).append(" ").append(province).append(" login successfully!");
                 }
                 else {

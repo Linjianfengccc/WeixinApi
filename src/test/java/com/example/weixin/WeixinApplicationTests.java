@@ -54,14 +54,13 @@ public class WeixinApplicationTests {
     @Test
     void contextLoads() throws InterruptedException, JMSException, IOException {
 
-        List<Order> l = daoService.getTakenOrdersByOpenid("ohHTIszRnH64cf2XVn3fLbpSpqzI");
-        Set<String> fieldNames=new HashSet<>();
-        fieldNames.add("title");
-        fieldNames.add("content");
-        JSONArray res=userInfoUtil.mapOrderFields(l,fieldNames);
-        System.out.println(res.toString());
-
-
+//        List<Order> l = daoService.getTakenOrdersByOpenid("ohHTIszRnH64cf2XVn3fLbpSpqzI");
+//        Set<String> fieldNames=new HashSet<>();
+//        fieldNames.add("title");
+//        fieldNames.add("content");
+//        JSONArray res=userInfoUtil.mapOrderFields(l,fieldNames);
+//        System.out.println(res.toString());
+        //int a=daoService.getOrderStatus("QWE");
 
     }
 

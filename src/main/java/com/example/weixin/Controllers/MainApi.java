@@ -330,7 +330,9 @@ public class MainApi {
         File Hicon=null;
         try{
             Hicon=new File(userHiconPath,fileName);
-            new FileOutputStream(Hicon).write(multipartFile.getBytes());
+            FileOutputStream fos=new FileOutputStream(Hicon);
+            fos.write(multipartFile.getBytes());
+            fos.close();
         }
         catch (IOException e){
             e.printStackTrace();
@@ -341,7 +343,6 @@ public class MainApi {
             adjustIMGtoPNG(Hicon);
         }catch (IOException e){
             e.printStackTrace();
-            Hicon.delete();
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
@@ -357,7 +358,23 @@ public class MainApi {
             filename=filename.substring(0,filename.indexOf("."))+subfix;
         }
         ImageIO.write(bfimg,"png",new File(path,filename));
+        bfimg.flush();
         img.delete();
+
+
+    }
+
+    @GetMapping("finish")
+    public String finishOrder(@RequestHeader("ge_session") String ge_session,@Param("oid") @NotNull String oid){
+        String openid=userInfoUtil.getUserInfo(ge_session, UserInfoUtil.INFO.OPENID);
+        Order o=daoService.checkSubmitAdmin(openid,oid);
+        if(o==null) return new MsgUtil("errMsg","不是你的订单啊憨批").toString();
+        int status=o.getstatus();
+        if(status!=2) return new MsgUtil("errMsg","invalid finish").toString();
+        else{
+            daoService.finishOrder(oid);
+            return new MsgUtil("msg","finish successfully").toString();
+        }
 
 
     }

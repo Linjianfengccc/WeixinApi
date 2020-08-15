@@ -34,7 +34,7 @@
     </update>
 
     <select id="getUserCustomizedInfo" resultMap="userCustomizedInfo">
-        select openId,真实姓名,性别,学号,校区,手机,身份证号,签名,年龄 from 用户
+        select openId,真实姓名,性别,学号,校区,手机,身份证号,签名,年龄,昵称 from 用户
         <where>
             openId=#{openid}
         </where>

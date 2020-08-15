@@ -153,4 +153,20 @@
         select * from 消息记录 where 接收方=#{openid} and 已接收=0
     </select>
 
+    <resultMap id="orderAdminMap" type="com.example.weixin.POJO.Order">
+        <result column="订单状态" property="status"/>
+        <result column="出价" property="price"/>
+    </resultMap>
+    <select id="checkSubmitAdmin" resultMap="orderAdminMap">
+        select 订单状态,出价 from 订单,下单
+        <where>
+            订单.订单号=下单.订单号 and 订单.订单号=#{oid} and openId=#{openid}
+        </where>
+
+    </select>
+
+    <update id="finishOrder">
+        update 订单 set 订单状态=1 where 订单号=#{oid}
+    </update>
+
 </mapper>
