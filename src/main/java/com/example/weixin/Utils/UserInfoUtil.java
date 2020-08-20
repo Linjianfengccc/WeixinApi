@@ -6,7 +6,7 @@ import com.example.weixin.POJO.Order;
 import com.example.weixin.POJO.UserCustomizedInfo;
 import com.example.weixin.Services.DAOService;
 import com.example.weixin.Services.UserFunction;
-import jdk.jshell.spi.ExecutionControl;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -115,19 +115,27 @@ public class UserInfoUtil {
                     f.setAccessible(true);
                 }
                 try{
-                    if(!f.getType().getSimpleName().equals("Date"))oo.put(f.getName(),f.get(o));
+                    if(!f.getType().getSimpleName().equals("Date")){
+                        if(!f.getName().equals("oContent"))oo.put(f.getName(),f.get(o));
+                        else oo.put(f.getName(),JSONObject.parse((String)f.get(o)));
+                    }
                     else{
                         oo.put(f.getName(),simpleDateFormat.format((Date)f.get(o)));
                     }
 
                 }
-                catch (NullPointerException | IllegalAccessException e){}
+                catch (NullPointerException | IllegalAccessException e){
+                    oo.put(f.getName(),null);
+                }
             }
             res.add(oo);
         }
         return res;
     }
 
-
+    public Boolean hasSignUpReality(String openid){
+        String userRealName=userFunction.getRealName(openid);
+        return userRealName==null?false:true;
+    }
 
 }

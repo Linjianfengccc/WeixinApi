@@ -24,6 +24,25 @@ public class Order {
     private String submitterNick;
     private int status;
     private Date date;//下单时间
+    private Date fDate;//结单时间
+    private String submitterTel;
+
+    public String getSubmitterTel() {
+        return submitterTel;
+    }
+
+    public void setSubmitterTel(String submitterTel) {
+        this.submitterTel = submitterTel;
+    }
+
+    public Date getfDate() {
+        return fDate;
+    }
+
+    public void setfDate(Date fDate) {
+        this.fDate = fDate;
+    }
+
     private double price;
 
 

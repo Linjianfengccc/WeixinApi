@@ -14,15 +14,16 @@ public class SessionInterceptor implements HandlerInterceptor {
     @Autowired
     UserInfoUtil userInfoUtil;
 
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String session=request.getHeader("ge_session");
         if(session==null || (!userInfoUtil.isSessionValid(session))) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write( new MsgUtil("errMsg","authorization").toString());
-
+            response.getWriter().write( new MsgUtil("errMsg","no authorization").toString());
             return false;
         }
+
         return true;
     }
 }

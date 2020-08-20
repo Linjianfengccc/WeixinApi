@@ -90,4 +90,12 @@ public class AsynchronizedQueueService {
     }
 
 
+    @JmsListener(destination = "autoFinish")
+    public void autoFinish(String oid){
+        int status=daoService.getOrderStatus(oid);
+        if(status==0) return;
+        daoService.setOrderStatusFinished(oid);
+        daoService.setOrderFinishTime(oid,simpleDateFormat.format(new Date()));
+    }
+
 }

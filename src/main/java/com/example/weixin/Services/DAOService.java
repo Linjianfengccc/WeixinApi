@@ -19,14 +19,14 @@ public interface DAOService {
     String exists(String openid);
     void signInNew(String openid);
     List<String> getOrderIDs();
-    void takeOrder(String openId, String oid, Date date);
+    void takeOrder(String openId, String oid, String date);
     int getOrderStatus(String oid);
     boolean updateOrderStatus(String oid,int newStatus);
     List<String> getusedIDs();
     void createOrder(String oid,String title,String content,Double price);
     void submitOrder(String oid,String openid,String date);
     int submittedNumber(String openid);
-    @Cacheable("submittedOrders")
+    //@Cacheable("submittedOrders")
     List<Order> getSubmittedOrders(String openid);
     @CachePut("submittedOrders")
     List<Order>flushSubmittedOrders(String openid);
@@ -40,5 +40,7 @@ public interface DAOService {
     List<ChatMsg> searchNewMsgFromDisk(String openid);
     List<Order> getTakenOrdersByOpenid(String openid);
     Order checkSubmitAdmin(String openid,String oid);
-    void finishOrder(String oid);
+    void setOrderStatusFinished(String oid);
+    void setOrderFinishTime(String oid, String f_time);
+    String checkTaker(String oid);
 }

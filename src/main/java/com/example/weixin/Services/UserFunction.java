@@ -15,4 +15,6 @@ public interface UserFunction {
     @CachePut("NickCache")
     String flushNickByOpenid(String openid);
 
+    String getRealName(String openid);
+
 };

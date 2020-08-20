@@ -26,11 +26,15 @@
                 </where>
     </select>
     <select id="flushTakeableOrders" resultMap="ordersResult">
-        select 订单.订单号,订单标题,订单内容,出价,下单时间 from 订单,下单
-        <where>
-            订单状态=1
+        select 订单号,下单时间,订单标题,订单内容,出价,T.openId as openId,昵称 from
+        (select 订单.订单号 订单号,下单时间,订单标题,订单内容,出价,openId from 订单,下单
+        <where>订单.订单状态=1
             and
             订单.订单号=下单.订单号
+        </where>)as T,用户
+
+        <where>
+            T.openId=用户.openId
         </where>
     </select>
     <select id="exists" resultType="String">
@@ -72,7 +76,7 @@
         select 订单号 from 订单
     </select>
     <insert id="submitOrder">
-        insert into 下单 values(#{openid},#{oid},#{date})
+        insert into 下单 values(#{openid},#{oid},#{date},null)
     </insert>
     <insert id="createOrder">
         insert into 订单 values(#{oid},#{title},#{content},1,#{price})
@@ -90,11 +94,12 @@
         <result property = "taker" column = "接单人"/>
         <result property="tDate" column="接单时间"/>
         <result property="takerNick" column="昵称"/>
+        <result property="fDate" column="结单时间"/>
     </resultMap>
     <select id="getSubmittedOrders" resultMap="ordersWithStatusResult">
-        select T.openId as 接单人,昵称,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间 from
-                (select openId,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间 from
-                    (select 订单.订单号,订单标题,订单内容,订单状态,出价,下单时间 from 订单,下单 where 下单.订单号=订单.订单号 and 下单.openId=#{openid}) as T left join 接单 on 接单.订单号=T.订单号) as T left join 用户 on T.openId=用户.openId
+        select T.openId as 接单人,昵称,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间,结单时间 from
+                (select openId,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间,T.结单时间 from
+                    (select 订单.订单号,订单标题,订单内容,订单状态,出价,下单时间,结单时间  from 订单,下单 where 下单.订单号=订单.订单号 and 下单.openId=#{openid} ) as T left join 接单 on 接单.订单号=T.订单号) as T left join 用户 on T.openId=用户.openId
     </select>
     <resultMap id="takenOrdersMap" type="com.example.weixin.POJO.Order">
         <result property="oId" column="订单号"/>
@@ -106,9 +111,11 @@
         <result property="title" column="订单标题"/>
         <result property="oContent" column="订单内容"/>
         <result property="status" column="订单状态"/>
+        <result property="fDate" column="结单时间"/>
+        <result property="submitterTel" column="手机"/>
     </resultMap>
     <select id="getTakenOrdersByOpenid" resultMap="takenOrdersMap">
-        select 订单.订单号,下单.openId as 下单用户,昵称,下单时间,接单时间,订单标题,订单内容,出价,订单状态 from
+        select 订单.订单号,下单.openId as 下单用户,昵称,下单时间,接单时间,订单标题,订单内容,出价,订单状态,接单.结单时间,手机 from
             订单,下单,接单,用户
                 <where>
                     订单.订单号=下单.订单号
@@ -142,7 +149,6 @@
     <update id="flushNewMsgStatus">
         update 消息记录 set 已接收=1 where 接收方=#{openid}
     </update>
-
     <resultMap id="chatMsgMap" type="com.example.weixin.POJO.ChatMsg">
         <result property="from" column="发送方"/>
         <result property="to" column="接收方"/>
@@ -152,7 +158,6 @@
     <select id="searchNewMsgFromDisk" resultMap="chatMsgMap">
         select * from 消息记录 where 接收方=#{openid} and 已接收=0
     </select>
-
     <resultMap id="orderAdminMap" type="com.example.weixin.POJO.Order">
         <result column="订单状态" property="status"/>
         <result column="出价" property="price"/>
@@ -164,9 +169,14 @@
         </where>
 
     </select>
-
-    <update id="finishOrder">
-        update 订单 set 订单状态=1 where 订单号=#{oid}
+    <update id="setOrderStatusFinished">
+        update 订单 set 订单状态=0 where 订单号=#{oid}
     </update>
+    <update id="setOrderFinishTime">
+        update 接单,下单 set 接单.结单时间=#{f_time},下单.结单时间=#{f_time} where 接单.订单号=#{oid} and 接单.订单号=下单.订单号
+    </update>
+    <select id="checkTaker" resultType="String">
+        select openId from 接单 where 订单号=#{oid}
+    </select>
 
 </mapper>

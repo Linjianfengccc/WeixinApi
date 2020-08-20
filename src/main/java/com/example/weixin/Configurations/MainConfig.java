@@ -1,5 +1,6 @@
 package com.example.weixin.Configurations;
 
+import com.example.weixin.Intereptors.RealityInterceptor;
 import com.example.weixin.Intereptors.SessionInterceptor;
 import com.example.weixin.Services.LoginServices;
 import com.example.weixin.Services.LoginServicesImp;
@@ -44,12 +45,17 @@ public class MainConfig implements WebMvcConfigurer {
      */
     @Bean
     public HandlerInterceptor getSessionInterceptor(){
-    return new SessionInterceptor();
-}
+        return new SessionInterceptor();
+    }
+    @Bean
+    public RealityInterceptor getRealityInterceptor(){
+        return new RealityInterceptor();
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(getSessionInterceptor()).addPathPatterns("/**").excludePathPatterns("/WeixinApi/login","/WeixinApi/font","/WeixinApi/orders","/WeixinApi/hicon/**");
+        registry.addInterceptor(getSessionInterceptor()).addPathPatterns("/**").excludePathPatterns("/WeixinApi/login","/WeixinApi/font","/WeixinApi/orders","/WeixinApi/hicon/**","/WeixinApi/t");
+        registry.addInterceptor(getRealityInterceptor()).addPathPatterns("/WeixinApi/**").excludePathPatterns("/WeixinApi/login","/WeixinApi/hicon/**","/WeixinApi/orders","/WeixinApi/whetherComplete","WeixinApi/whetherComplete","/WeixinApi/updateUserInfo","/WeixinApi/t");
     }
 
     @Bean

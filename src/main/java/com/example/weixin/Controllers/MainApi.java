@@ -8,6 +8,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.example.weixin.POJO.Order;
 import com.example.weixin.POJO.UserCustomizedInfo;
 import com.example.weixin.Services.DAOService;
+import com.example.weixin.Services.DelayJobService;
 import com.example.weixin.Services.LoginServices;
 import com.example.weixin.Utils.MsgUtil;
 import com.example.weixin.Utils.OrderIdGenerator;
@@ -15,17 +16,14 @@ import com.example.weixin.Utils.UserInfoUtil;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.Nullable;
 import javax.annotation.Resource;
 import javax.imageio.ImageIO;
 import javax.jms.Destination;
-import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -36,6 +34,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 @RestController()
@@ -65,6 +64,7 @@ public class MainApi {
     private static final int maxTake=10;
 
 
+
     @PostMapping("/login")
     public String login(@RequestBody String body, HttpServletResponse httpServletResponse){
         JSONObject jsonObject;
@@ -92,7 +92,7 @@ public class MainApi {
             JSONObject jsonObject=new JSONObject();
             jsonObject.put("oid",o.getoId());
             jsonObject.put("title",o.getTitle());
-            jsonObject.put("content",o.getoContent());
+            jsonObject.put("content",JSONObject.parse(o.getoContent()));
             jsonObject.put("price",o.getPrice());
             jsonObject.put("dateTime",simpleDateFormat.format(o.getDate()));
             jsonObject.put("submitterNick",o.getSubmitterNick());
@@ -122,7 +122,7 @@ public class MainApi {
             }
         }
         locks.remove(oid);
-        daoService.takeOrder(openId,oid,new Date());
+        daoService.takeOrder(openId,oid,simpleDateFormat.format(new Date()));
         jmsTemplate.convertAndSend(destination,"flush");
         String submitter=daoService.getOrderOwner(oid);
         daoService.flushSubmittedOrders(submitter);
@@ -135,12 +135,19 @@ public class MainApi {
 
     @PostMapping("submit_order")
     public String submitOrder(HttpServletRequest httpServletRequest,@RequestBody JSONObject order){
-        String title=(String)order.get("title"),content=(String)order.get("content");
+        String title=(String)order.get("title");
+        JSONObject content=new JSONObject();
+        String detail=order.getString("content");
+        content.put("org",order.getString("org"));
+        content.put("des",order.getString("des"));
+        content.put("detail",detail);
+
         if(title==null||title.length()==0) return new MsgUtil("errMsg","标题不能为空").toString();
-        if(content==null||content.length()==0)return new MsgUtil("errMsg","订单内容不能为空").toString();
+        if(detail==null||detail.length()==0)return new MsgUtil("errMsg","订单内容不能为空").toString();
         if(title.length()>15) return new MsgUtil("errMsg","标题不能超过15个字符").toString();
-        if(content.length()>200)return new MsgUtil("errMsg","订单内容不能超过200个字符").toString();
+        if(detail.length()>200)return new MsgUtil("errMsg","订单内容不能超过200个字符").toString();
         Double price;
+
         try{
             price=Double.parseDouble(order.getString("price"));
         }
@@ -152,7 +159,7 @@ public class MainApi {
         String oid=oidGenerator.generate();
         if(daoService.submittedNumber(openid)>maxSubmit) return "{\"errMsg\":\"超过最大下单数（"+maxSubmit+"）!\"}";
         daoService.submitOrder(oid,openid,simpleDateFormat.format(new Date()));
-        daoService.createOrder(oid,title,content,price);
+        daoService.createOrder(oid,title,content.toJSONString(),price);
         daoService.flushSubmittedOrders(openid);
         jmsTemplate.convertAndSend(destination,"");
         locks.put(oid,new ReentrantLock());
@@ -171,14 +178,14 @@ public class MainApi {
         for(Order o:orders){
             JSONObject oo=new JSONObject();
             for(Field f:o.getClass().getDeclaredFields()){
-                if(Modifier.isStatic(f.getModifiers()) ||f.getName().equals("sOpenid")) continue;
+                if(Modifier.isStatic(f.getModifiers()) ||f.getName().equals("sOpenid")||f.getName().equals("submitterNick")||f.getName().equals("submitterTel")) continue;
                 if(!f.trySetAccessible()){
                     f.setAccessible(true);
                 }
                 try{
-                    System.out.println(f.get(o)==null);
                     if(!f.getType().getSimpleName().equals("Date")){
-                        oo.put(f.getName(),f.get(o));
+                        if(!f.getName().equals("oContent"))oo.put(f.getName(),f.get(o));
+                        else oo.put(f.getName(),JSONObject.parse((String)f.get(o)));
                     }
                     else{
                         Date d=(Date)f.get(o);
@@ -211,6 +218,8 @@ public class MainApi {
         fieldName.add("title");
         fieldName.add("oContent");
         fieldName.add("status");
+        fieldName.add("fDate");
+        fieldName.add("submitterTel");
 
         return userInfoUtil.mapOrderFields(orders,fieldName);
 
@@ -372,11 +381,53 @@ public class MainApi {
         int status=o.getstatus();
         if(status!=2) return new MsgUtil("errMsg","invalid finish").toString();
         else{
-            daoService.finishOrder(oid);
+            daoService.setOrderStatusFinished(oid);
+            String f_time=simpleDateFormat.format(new Date());
+            daoService.setOrderFinishTime(oid,f_time);
             return new MsgUtil("msg","finish successfully").toString();
         }
 
 
+    }
+
+    @GetMapping("whetherComplete")
+    public boolean whetherComplete(@RequestHeader("ge_session") String ge_session){
+        String openid=userInfoUtil.getUserInfo(ge_session, UserInfoUtil.INFO.OPENID);
+        return userInfoUtil.hasSignUpReality(openid);
+
+    }
+
+    @Autowired
+    DelayJobService delayJobService;
+    @Value("${spring.quartz.autoFinishScale}")
+    long expireScale;
+    @GetMapping("RFF")
+    public JSONObject requestForFinish(@NotNull @Param("oid")String oid,@RequestHeader("ge_session")String ge_session,HttpServletResponse httpServletResponse){
+        JSONObject resp=new JSONObject();
+        String openid=userInfoUtil.getUserInfo(ge_session, UserInfoUtil.INFO.OPENID);
+        try{
+            String taker=daoService.checkTaker(oid);
+            if(taker==null){
+                resp.put("errMsg","wrong oid");
+            }
+            else if(!taker.equals(openid)){
+                resp.put("errMsg","not yours bitch");
+            }
+            else  if(daoService.getOrderStatus(oid)!=2){
+                resp.put("errMsg","invalid option for current order status");
+            }
+            else{
+                delayJobService.add(new DelayJobService.AutoFinishOrderDelayed(expireScale, TimeUnit.SECONDS,oid));
+                resp.put("msg","success");
+            }
+            return resp;
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            resp.put("errMsg","unknown error");
+            httpServletResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            return resp;
+        }
     }
 
 }

@@ -47,5 +47,12 @@
         select 昵称 from 用户 where openId=#{openId}
     </select>
 
+    <select id="getRealName" resultType="String">
+        select 真实姓名 from 用户
+        <where>
+            openId=#{openid}
+        </where>
+    </select>
+
 
 </mapper>

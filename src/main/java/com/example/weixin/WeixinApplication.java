@@ -10,10 +10,13 @@ import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 @ServletComponentScan
 @SpringBootApplication
 @EnableCaching
 @MapperScan
+@EnableScheduling
 public class WeixinApplication {
 
     public static void main(String[] args) {
