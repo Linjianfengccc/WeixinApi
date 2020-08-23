@@ -1,6 +1,7 @@
 package com.example.weixin.Services;
 
 import com.alibaba.fastjson.JSONObject;
+import com.example.weixin.POJO.Order;
 import net.bytebuddy.asm.Advice;
 import org.apache.commons.logging.LogFactory;
 import org.checkerframework.checker.units.qual.A;
@@ -94,7 +95,7 @@ public class AsynchronizedQueueService {
     public void autoFinish(String oid){
         int status=daoService.getOrderStatus(oid);
         if(status==0) return;
-        daoService.setOrderStatusFinished(oid);
+        daoService.updateOrderStatus(oid, Order.ORDER_STATUS_TOFINISH);
         daoService.setOrderFinishTime(oid,simpleDateFormat.format(new Date()));
     }
 

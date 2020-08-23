@@ -78,6 +78,7 @@ public class ChatHandler implements WebSocketHandler {
         if (messageCache.hasNewMsg(openid)) {
             JSONObject newMsgs = messageCache.getCachedMsg(openid);
             try{
+                System.out.println(webSocketSession==null);
                 webSocketSession.sendMessage(new TextMessage(newMsgs.toJSONString()));
                 daoService.flushNewMsgStatus(openid);
                 messageCache.flushNewMsgStatus(openid);

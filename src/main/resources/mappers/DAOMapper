@@ -88,18 +88,21 @@
         <result property = "oId" column = "订单号"/>
         <result property = "title" column = "订单标题"/>
         <result property = "oContent" column = "订单内容"/>
-        <result property = "date" column = "下单时间"/>
+        <result property = "date" column = "下单时间" javaType="java.util.Date"/>
         <result property = "price" column = "出价"/>
         <result property = "status" column = "订单状态"/>
         <result property = "taker" column = "接单人"/>
         <result property="tDate" column="接单时间"/>
         <result property="takerNick" column="昵称"/>
         <result property="fDate" column="结单时间"/>
+        <result property="cDate" column="取消时间"/>
+        <result property="canceler" column="取消者"/>
     </resultMap>
     <select id="getSubmittedOrders" resultMap="ordersWithStatusResult">
-        select T.openId as 接单人,昵称,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间,结单时间 from
+        select * from (select T.openId as 接单人,昵称,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间,结单时间 from
                 (select openId,T.订单号,订单内容,订单标题,出价,订单状态,下单时间,接单时间,T.结单时间 from
-                    (select 订单.订单号,订单标题,订单内容,订单状态,出价,下单时间,结单时间  from 订单,下单 where 下单.订单号=订单.订单号 and 下单.openId=#{openid} ) as T left join 接单 on 接单.订单号=T.订单号) as T left join 用户 on T.openId=用户.openId
+                    (select 订单.订单号,订单标题,订单内容,订单状态,出价,下单时间,结单时间  from 订单,下单 where 下单.订单号=订单.订单号 and 下单.openId=#{openid} ) as T left join 接单 on 接单.订单号=T.订单号) as T left join 用户 on T.openId=用户.openId) as T left join 订单取消详情
+                        on T.订单号=订单取消详情.订单号
     </select>
     <resultMap id="takenOrdersMap" type="com.example.weixin.POJO.Order">
         <result property="oId" column="订单号"/>
@@ -113,19 +116,21 @@
         <result property="status" column="订单状态"/>
         <result property="fDate" column="结单时间"/>
         <result property="submitterTel" column="手机"/>
+        <result property="cDate" column="取消时间"/>
+        <result property="canceler" column="取消者"/>
     </resultMap>
     <select id="getTakenOrdersByOpenid" resultMap="takenOrdersMap">
-        select 订单.订单号,下单.openId as 下单用户,昵称,下单时间,接单时间,订单标题,订单内容,出价,订单状态,接单.结单时间,手机 from
-            订单,下单,接单,用户
-                <where>
-                    订单.订单号=下单.订单号
-                        and
-                    订单.订单号=接单.订单号
-                        and
-                    接单.openId=#{openid}
-                        and
-                    用户.openId=下单.openId
-                </where>
+        select * from (select 订单.订单号,下单.openId as 下单用户,昵称,下单时间,接单时间,订单标题,订单内容,出价,订单状态,接单.结单时间,手机 from
+        订单,下单,接单,用户
+        <where>
+            订单.订单号=下单.订单号
+            and
+            订单.订单号=接单.订单号
+            and
+            接单.openId=#{openid}
+            and
+            用户.openId=下单.openId
+        </where>) as T left  join 订单取消详情 on T.订单号=订单取消详情.订单号
     </select>
     <select id="flushSubmittedOrders" resultMap="ordersWithStatusResult">
         select 订单.订单号,订单内容,订单标题,下单时间,出价,订单状态,接单.openId as 接单人 from (订单 left join 下单 on 下单.订单号=订单.订单号) left join 接单 on 接单.订单号=下单.订单号
@@ -178,5 +183,14 @@
     <select id="checkTaker" resultType="String">
         select openId from 接单 where 订单号=#{oid}
     </select>
+    <insert id="pushCancleRecord">
+        insert into 订单取消详情 values(#{oid},#{cDate},#{canceler})
+    </insert>
+    <update id="updateOrder">
+        update 订单 set 订单标题=#{newTitle},出价= #{newPrice},订单内容=#{newContent}
+            <where>
+                订单号=#{oid}
+            </where>
+    </update>
 
 </mapper>

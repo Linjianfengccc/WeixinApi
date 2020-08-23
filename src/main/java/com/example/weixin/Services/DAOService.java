@@ -1,5 +1,6 @@
 package com.example.weixin.Services;
 
+import com.alibaba.fastjson.JSONObject;
 import com.example.weixin.POJO.ChatMsg;
 import com.example.weixin.POJO.Order;
 import org.apache.ibatis.annotations.Mapper;
@@ -8,6 +9,7 @@ import org.springframework.cache.annotation.Cacheable;
 
 
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 @Mapper
@@ -43,4 +45,7 @@ public interface DAOService {
     void setOrderStatusFinished(String oid);
     void setOrderFinishTime(String oid, String f_time);
     String checkTaker(String oid);
+    void pushCancleRecord(String oid,String canceler,String cDate);
+
+    void updateOrder(String oid, String newTitle, double newPrice, String newContent);
 }

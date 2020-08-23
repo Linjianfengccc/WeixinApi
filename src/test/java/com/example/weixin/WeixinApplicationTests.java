@@ -1,5 +1,6 @@
 package com.example.weixin;
 
+import com.alibaba.fastjson.JSONObject;
 import com.example.weixin.Controllers.MainApi;
 
 import com.example.weixin.Services.ChatMsgRepository;
@@ -58,7 +59,8 @@ public class WeixinApplicationTests {
 //        JSONArray res=userInfoUtil.mapOrderFields(l,fieldNames);
 //        System.out.println(res.toString());
         //int a=daoService.getOrderStatus("QWE");
-
+        JSONObject jsonObject=JSONObject.parseObject("{\"qwe\":1.1}");
+        System.out.println(jsonObject.getDouble("qwew"));
 
 
 

@@ -116,7 +116,7 @@ public class MainApi {
             try{
                 if (daoService.ensureAdmin(openId, oid) != 0)return new MsgUtil("errMsg","不能接手自己的订单").toString();
                 if(daoService.getOrderStatus(oid)!=Order.ORDER_STATUS_AVALIABLE)return new MsgUtil("errMsg","订单号错误或订单已被取消/接手").toString();
-                daoService.updateOrderStatus(oid,Order.ORDER_STATUS_TOOK);
+                daoService.updateOrderStatus(oid,Order.ORDER_STATUS_TAKEN);
             }catch (Exception e){
                 return new MsgUtil("errMsg","请求错误").toString();
             }
@@ -158,6 +158,7 @@ public class MainApi {
         String openid=userInfoUtil.getUserInfo(httpServletRequest.getHeader("ge_session"), UserInfoUtil.INFO.OPENID);
         String oid=oidGenerator.generate();
         if(daoService.submittedNumber(openid)>maxSubmit) return "{\"errMsg\":\"超过最大下单数（"+maxSubmit+"）!\"}";
+
         daoService.submitOrder(oid,openid,simpleDateFormat.format(new Date()));
         daoService.createOrder(oid,title,content.toJSONString(),price);
         daoService.flushSubmittedOrders(openid);
@@ -169,6 +170,7 @@ public class MainApi {
     @GetMapping("/submittedOrders")
     public JSONArray getSubmittedOrders(HttpServletRequest httpServletRequest){
         List<Order> orders=daoService.getSubmittedOrders(userInfoUtil.getUserInfo(httpServletRequest.getHeader("ge_session"), UserInfoUtil.INFO.OPENID));
+
         JSONArray res=new JSONArray();
         if(orders.size()==0){
             res.add(JSONObject.parse(new MsgUtil("errMsg","openid ERR").toString()));
@@ -220,31 +222,47 @@ public class MainApi {
         fieldName.add("status");
         fieldName.add("fDate");
         fieldName.add("submitterTel");
+        fieldName.add("cDate");
+        fieldName.add("canceler");
 
         return userInfoUtil.mapOrderFields(orders,fieldName);
 
     }
 
-    @GetMapping("/cancle")
+    @GetMapping("/cancel")
     public String cancle(HttpServletRequest httpServletRequest,@Param("oid") @NotNull String oid){
         if(oid==null) return new MsgUtil("errMsg","null Oid!").toString();
         String openid=userInfoUtil.getUserInfo(httpServletRequest.getHeader("ge_session"), UserInfoUtil.INFO.OPENID);
-        if(daoService.ensureAdmin(openid,oid)==0){
-            return new MsgUtil("errMsg","admin refused").toString();
+        String canceler=null;
+        if(daoService.ensureAdmin(openid,oid)!=0){
+            canceler="submitter";
+        }
+        else if(daoService.checkTaker(oid).equals(openid)){
+            canceler="taker";
         }
 
-        Object lock=locks.get(oid);
-        if(lock==null)return new MsgUtil("errMsg","订单处于无法被取消的状态").toString();
-        synchronized (lock){
-            if(daoService.getOrderStatus(oid)!=Order.ORDER_STATUS_AVALIABLE){
-                return new MsgUtil("errMsg","订单处于无法被取消状态").toString();
-            }
-            try{
-                daoService.cancleOrder(oid);
-            }catch (Exception e){
-                return new MsgUtil("errMsg","请求错误").toString();
-            }
+        if(canceler==null){
+            return new MsgUtil("errMsg","admin refused").toString();
         }
+//
+//        Object lock=locks.get(oid);
+//        if(lock==null)return new MsgUtil("errMsg","订单处于无法被取消的状态").toString();
+//        synchronized (lock){
+//            if(daoService.getOrderStatus(oid)!=Order.ORDER_STATUS_AVALIABLE){
+//                return new MsgUtil("errMsg","订单处于无法被取消状态").toString();
+//            }
+//            try{
+//                daoService.cancleOrder(oid);
+//            }catch (Exception e){
+//                return new MsgUtil("errMsg","请求错误").toString();
+//            }
+//        }
+        int status=daoService.getOrderStatus(oid);
+        if(!(status==Order.ORDER_STATUS_TAKEN ||status==Order.ORDER_STATUS_AVALIABLE)){
+            return new MsgUtil("errMsg","unable to cancel").toString();
+        }
+        daoService.cancleOrder(oid);
+        daoService.pushCancleRecord(oid,canceler,simpleDateFormat.format(new Date()));
         jmsTemplate.convertAndSend(destination,"");
         locks.remove(oid);
         daoService.flushSubmittedOrders(openid);
@@ -428,6 +446,44 @@ public class MainApi {
             httpServletResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return resp;
         }
+    }
+
+    @PostMapping("edit")
+    public String edit(@Param("oid") String oid,@RequestHeader("ge_session") String ge_session,@NotNull @RequestBody JSONObject newDetail){
+        String openid=userInfoUtil.getUserInfo(ge_session, UserInfoUtil.INFO.OPENID);
+        if(daoService.ensureAdmin(openid,oid)==0){
+            return new MsgUtil("errMsg","admin denied").toString();
+        }
+        int status=daoService.getOrderStatus(oid);
+        if(status!=Order.ORDER_STATUS_AVALIABLE){
+            return new MsgUtil("errMsg","order not editable").toString();
+        }
+        LinkedHashMap _content= (LinkedHashMap) newDetail.get("content");
+        JSONObject content=new JSONObject();
+        content.put("des",_content.get("des"));
+        content.put("org",_content.get("org"));
+        content.put("detail",_content.get("detail"));
+        String title;
+        double price;
+        try{
+            //System.out.println(newDetail.toJSONString());
+            title=newDetail.getString("title");
+            price=newDetail.getDouble("price");
+            if(title==null||content.get("des")==null||content.get("org")==null||content.get("detail")==null||newDetail.get("price")==null){
+                throw new NullPointerException();
+            }
+
+        }
+        catch (Exception e){
+            return new MsgUtil("errMsg","detail wrong format").toString();
+        }
+        daoService.updateOrder(oid,title,price,content.toJSONString());
+        if(status==1){
+            jmsTemplate.convertAndSend("flushOrders", ' ');
+        }
+        return new MsgUtil("msg","success").toString();
+
+
     }
 
 }

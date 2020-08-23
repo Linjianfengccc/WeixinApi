@@ -1,13 +1,15 @@
 package com.example.weixin.POJO;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.annotation.JSONField;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
 public class Order {
     public static int ORDER_STATUS_FINISHED =0;
     public static int ORDER_STATUS_AVALIABLE =1;
-    public static int ORDER_STATUS_TOOK =2;
+    public static int ORDER_STATUS_TAKEN =2;
     public static int ORDER_STATUS_CANCLED =3;
     public static int ORDER_STATUS_TOFINISH =4;
 
@@ -18,14 +20,40 @@ public class Order {
     private String oContent;
     private String title;
     private String taker;//接单用户的openid
+//    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+//    @JSONField(format ="yyyy-MM-dd HH:mm:ss" )
     private Date tDate;//接单时间
     private String takerNick;
     private String sOpenid;//下单用户的openid
     private String submitterNick;
     private int status;
+//    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+//    @JSONField(format ="yyyy-MM-dd HH:mm:ss" )
     private Date date;//下单时间
+//    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+//    @JSONField(format ="yyyy-MM-dd HH:mm:ss" )
     private Date fDate;//结单时间
     private String submitterTel;
+    private String canceler;
+//    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+//    @JSONField(format ="yyyy-MM-dd HH:mm:ss" )
+    private Date cDate;
+
+    public String getCanceler() {
+        return canceler;
+    }
+
+    public void setCanceler(String canceler) {
+        this.canceler = canceler;
+    }
+
+    public Date getcDate() {
+        return cDate;
+    }
+
+    public void setcDate(Date cDate) {
+        this.cDate = cDate;
+    }
 
     public String getSubmitterTel() {
         return submitterTel;
